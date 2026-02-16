@@ -18,6 +18,7 @@ class Interface:
         self.identify_counter = 0
 
         # 一些控件
+        self.name_entry = None
         self.link_entry = None
         self.directory_entry = None
         self.recorder_tree = None
@@ -31,19 +32,26 @@ class Interface:
         control_frame = ttk.LabelFrame(self.root, text="创建新任务", padding=10)
         control_frame.pack(fill="x", padx=10, pady=10)
 
-        # 第一行 直播链接
-        ttk.Label(control_frame, text="直播链接:").grid(row=0, column=0, sticky=tkinter.W, padx=5, pady=5)
+        # 第一行 名字
+        ttk.Label(control_frame, text="主播名称:").grid(row=0, column=0, sticky=tkinter.W, padx=5, pady=5)
+        self.name_entry = ttk.Entry(control_frame, width=50)
+        self.name_entry.grid(row=0, column=1, sticky=tkinter.EW, padx=5, pady=5)
+        # 木几萌
+        self.name_entry.insert(0, "木几萌")
+
+        # 第二行 直播链接
+        ttk.Label(control_frame, text="直播链接:").grid(row=1, column=0, sticky=tkinter.W, padx=5, pady=5)
         # 链接输入框
         self.link_entry = ttk.Entry(control_frame, width=50)
-        self.link_entry.grid(row=0, column=1, sticky=tkinter.EW, padx=5, pady=5)
+        self.link_entry.grid(row=1, column=1, sticky=tkinter.EW, padx=5, pady=5)
         # 木几萌
         self.link_entry.insert(0, "https://live.bilibili.com/27004785")
 
-        # 第二行 输出目录
-        ttk.Label(control_frame, text="输出目录:").grid(row=1, column=0, sticky=tkinter.W, padx=5, pady=5)
+        # 第三行 输出目录
+        ttk.Label(control_frame, text="输出目录:").grid(row=2, column=0, sticky=tkinter.W, padx=5, pady=5)
 
         dir_frame = tkinter.Frame(control_frame)
-        dir_frame.grid(row=1, column=1, sticky=tkinter.EW, padx=5, pady=5)
+        dir_frame.grid(row=2, column=1, sticky=tkinter.EW, padx=5, pady=5)
 
         # 输出目录输入框
         self.directory_entry = ttk.Entry(dir_frame)
@@ -54,7 +62,7 @@ class Interface:
         ttk.Button(dir_frame, text="选择输出目录", width=12, command=self.select_directory).pack(side="left", padx=5)
 
         button_frame = ttk.Frame(control_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, sticky=tkinter.EW, pady=10)
+        button_frame.grid(row=3, column=0, columnspan=2, sticky=tkinter.EW, pady=10)
 
         ttk.Button(button_frame, text="添加任务", command=self.add_recorder).pack(side="left", padx=5)
         ttk.Button(button_frame, text="删除选中", command=self.delete_recorder).pack(side="left", padx=5)
@@ -66,17 +74,19 @@ class Interface:
         list_frame = ttk.LabelFrame(self.root, text="录制任务列表", padding=10)
         list_frame.pack(fill="both", padx=10, pady=10, expand=True)
 
-        # 创建Treeview
-        columns = ("id", "link", "output", "status", "time")
+        # 创建录制列表
+        columns = ("id", "name", "link", "output", "status", "time")
         self.recorder_tree = ttk.Treeview(list_frame, columns=columns, height=15, show="headings")
 
         self.recorder_tree.column("id", width=50, anchor="center")
+        self.recorder_tree.column("name", width=80, anchor="center")
         self.recorder_tree.column("link", width=250, anchor="w")
-        self.recorder_tree.column("output", width=200, anchor="w")
+        self.recorder_tree.column("output", width=150, anchor="w")
         self.recorder_tree.column("status", width=80, anchor="center")
         self.recorder_tree.column("time", width=150, anchor="center")
 
         self.recorder_tree.heading("id", text="任务编号")
+        self.recorder_tree.heading("name", text="主播名称")
         self.recorder_tree.heading("link", text="链接")
         self.recorder_tree.heading("output", text="输出目录")
         self.recorder_tree.heading("status", text="状态")
@@ -92,7 +102,7 @@ class Interface:
 
         # 特殊标签
         self.recorder_tree.tag_configure("running", foreground="green")
-        self.recorder_tree.tag_configure("stopped", foreground="red")
+        self.recorder_tree.tag_configure("failed", foreground="red")
 
         # 绑定事件
         self.recorder_tree.bind("<Delete>", lambda e: self.delete_recorder(True))
@@ -129,8 +139,13 @@ class Interface:
     def add_recorder(self):
         """添加新录制器"""
 
+        name = self.name_entry.get().strip()
         link = self.link_entry.get().strip()
         output = self.directory_entry.get().strip()
+
+        if not name:
+            messagebox.showinfo("提示", "请输入主播名称")
+            return
 
         if not link:
             messagebox.showinfo("提示", "请输入直播链接")
@@ -141,7 +156,7 @@ class Interface:
             return
 
         self.identify_counter += 1
-        recorder = Recorder(link, output, self.identify_counter)
+        recorder = Recorder(name, link, output, self.identify_counter)
         self.recorders.append(recorder)
 
         # 刷新列表显示
@@ -213,6 +228,7 @@ class Interface:
 
             self.recorder_tree.insert("", tkinter.END, tags=(recorder.identify, status.tag), values=(
                 index + 1,
+                recorder.name,
                 recorder.link,
                 recorder.output,
                 status.text,
