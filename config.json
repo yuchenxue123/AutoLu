@@ -1,6 +1,4 @@
 {
-  "split": {
-    "enable": false,
-    "time": 1800
-  }
+  "mode": "single",
+  "segment_time": 1800
 }

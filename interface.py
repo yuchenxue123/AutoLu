@@ -1,6 +1,8 @@
+import signal
+import sys
 import tkinter
 from tkinter import ttk, filedialog, messagebox
-from recorder import Recorder
+from recorder import Recorder, SegmentsRecorder
 
 
 class Interface:
@@ -115,6 +117,8 @@ class Interface:
         self.context_menu.add_separator()
         self.context_menu.add_command(label="删除任务", command=self.delete_recorder)
 
+        self.root.after(500, lambda b: self._poll_list(), None)
+
     def show_context_menu(self, event):
         """显示右键菜单"""
 
@@ -156,10 +160,10 @@ class Interface:
             return
 
         self.identify_counter += 1
-        recorder = Recorder(name, link, output, self.identify_counter)
+        from recorder import config
+        recorder = Recorder(name, link, output, self.identify_counter) if str(config.get("mode")) == "segment" else SegmentsRecorder(name, link, output, self.identify_counter)
         self.recorders.append(recorder)
 
-        # 刷新列表显示
         self.refresh_recorder_list()
 
     def delete_recorder(self, from_event=False):
@@ -178,6 +182,7 @@ class Interface:
             if recorder:
                 recorder.stop()
                 self.recorders.remove(recorder)
+            self.recorder_tree.delete(item)
 
         self.refresh_recorder_list()
 
@@ -196,8 +201,6 @@ class Interface:
             if recorder:
                 recorder.start()
 
-        self.refresh_recorder_list()
-
     def stop_recorder(self):
         """停止选中录制器"""
 
@@ -213,31 +216,50 @@ class Interface:
             if recorder:
                 recorder.stop()
 
-        self.refresh_recorder_list()
-
     def refresh_recorder_list(self):
         """刷新列表显示"""
 
-        # 清空现有项目
-        for item in self.recorder_tree.get_children():
-            self.recorder_tree.delete(item)
+        items = list(self.recorder_tree.get_children())
 
-        # 添加所有任务
-        for index, recorder in enumerate(self.recorders):
+        # 更新或插入
+        for i, recorder in enumerate(self.recorders):
             status = recorder.status
-
-            self.recorder_tree.insert("", tkinter.END, tags=(recorder.identify, status.tag), values=(
-                index + 1,
+            values = (
+                i + 1,
                 recorder.name,
                 recorder.link,
                 recorder.output,
                 status.text,
-                recorder.created_time
-            ))
+                recorder.time.strftime("%Y-%m-%d %H:%M:%S")
+            )
+            tags = (str(recorder.identify), status.tag)
 
+            if i < len(items):
+                item = items[i]
+                self.recorder_tree.item(item, values=values, tags=tags)
+            else:
+                self.recorder_tree.insert("", tkinter.END, tags=tags, values=values)
+
+    def _poll_list(self):
+        """实时刷新"""
+        try:
+            self.refresh_recorder_list()
+        finally:
+            self.root.after(500, lambda b: self._poll_list(), None)
+
+def __register_close_callback(interface: Interface):
+    def cleanup():
+        for recorder in interface.recorders:
+            recorder.cleanup()
+
+    import atexit
+    atexit.register(cleanup)
+    signal.signal(signal.SIGINT, lambda s, f: (cleanup(), sys.exit(0)))
+    signal.signal(signal.SIGTERM, lambda s, f: (cleanup(), sys.exit(0)))
 
 def create_window():
     root = tkinter.Tk()
     interface = Interface(root)
+    __register_close_callback(interface)
     root.mainloop()
     return interface
