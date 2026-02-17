@@ -8,4 +8,4 @@ mkdir -p "output"
 mv dist/$APP_NAME.exe output/
 
 rm -rf build dist
-rm -rf $APP_NAME.exe
+rm -rf $APP_NAME.spec
