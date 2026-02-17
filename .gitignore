@@ -66,4 +66,7 @@ env/
 
 
 output/
+record/
+config.json
+latest.log
 
