@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from tkinter import messagebox
 
 from interface import create_window
@@ -17,5 +18,6 @@ logging.basicConfig(
 if __name__ == '__main__':
     if not os.path.exists("ffmpeg.exe"):
         messagebox.showerror("Error", "请把 ffmpeg.exe 放在该程序同目录")
+        sys.exit(0)
     else:
         create_window()
