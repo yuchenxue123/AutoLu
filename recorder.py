@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 import typing
 from datetime import datetime
 from enum import Enum
@@ -9,6 +10,7 @@ from pathlib import Path
 from subprocess import Popen
 from threading import Thread
 
+logger = logging.getLogger("Recorder")
 
 class Status(Enum):
     PENDING = ("未启动", "pending")
@@ -22,20 +24,31 @@ class Status(Enum):
         self.tag = tag
 
 
+def __get_resource(path):
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    result = os.path.join(base, path)
+    return result
+
+STREAMLINK = __get_resource("streamlink.exe")
+
 def _check_streamlink(link: str, callback: typing.Callable[[bool], None]) -> None:
     """我不会 asyncio """
     def _worker():
         try:
             subprocess.run(
-                ["streamlink", link],
+                [STREAMLINK, link],
                 capture_output=True,
                 text=True,
                 timeout=10,
+                creationflags=FLAGS
             )
+            logger.info("解析成功的表现")
             callback(True)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
+            logger.error(e)
             callback(False)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            logger.error(e)
             callback(False)
 
     Thread(target=_worker, daemon=True).start()
@@ -44,6 +57,8 @@ __default_config = {
   "mode": "single",
   "segment_time": 1800
 }
+
+FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 def __load_json():
     default = {}
@@ -62,6 +77,7 @@ def __load_json():
 
         return data
     except (FileNotFoundError, json.JSONDecodeError, OSError, UnicodeDecodeError) as _:
+        logger.error(_)
         return default
 
 config = __load_json()
@@ -109,11 +125,11 @@ class Recorder:
             self.output,
             self.name,
             self.time.strftime("%Y%m%d%H%M%S"),
-            f"record.mp4"
+            "record.mp4"
         )
 
         streamlink_command = [
-            "streamlink",
+            STREAMLINK,
             self.link,
             "best",
             "-o", filename
@@ -126,7 +142,8 @@ class Recorder:
                 stderr=subprocess.PIPE,
                 text=True,
                 encoding="utf-8",
-                bufsize=1
+                bufsize=1,
+                creationflags=FLAGS
             )
 
             self._read_stream(self._streamlink_process.stdout,  f"[streamlink]")
@@ -192,7 +209,7 @@ class SegmentsRecorder(Recorder):
         )
 
         streamlink_command = [
-            "streamlink",
+            STREAMLINK,
             self.link,
             "best",
             "-o", "-"
@@ -219,7 +236,8 @@ class SegmentsRecorder(Recorder):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                encoding="utf-8"
+                encoding="utf-8",
+                creationflags=FLAGS
             )
 
             self._ffmpeg_process = subprocess.Popen(
@@ -228,7 +246,8 @@ class SegmentsRecorder(Recorder):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                encoding="utf-8"
+                encoding="utf-8",
+                creationflags=FLAGS
             )
 
             self._streamlink_process.stdout.close()

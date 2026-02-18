@@ -1,9 +1,11 @@
+import logging
 import signal
 import sys
 import tkinter
 from tkinter import ttk, filedialog, messagebox
 from recorder import Recorder, SegmentsRecorder
 
+logger = logging.getLogger("Interface")
 
 class Interface:
     def __init__(self, root: tkinter.Tk):
@@ -17,7 +19,7 @@ class Interface:
 
         # 唯一标识符
         # 只增不减，保证唯一性
-        self.identify_counter = 0
+        self.identify_counter = 1
 
         # 一些控件
         self.name_entry = None
@@ -159,10 +161,18 @@ class Interface:
             messagebox.showinfo("提示", "请选择输出目录")
             return
 
-        self.identify_counter += 1
         from recorder import config
-        recorder = Recorder(name, link, output, self.identify_counter) if str(config.get("mode")) == "segment" else SegmentsRecorder(name, link, output, self.identify_counter)
+        if str(config.get("mode")) == "single":
+            logger.info(f"{name}-{self.identify_counter} 使用 Single 模式")
+            recorder = Recorder(name, link, output, self.identify_counter)
+        elif str(config.get("mode")) == "segment":
+            logger.info(f"{name}-{self.identify_counter} 使用 Segment 模式")
+            recorder = SegmentsRecorder(name, link, output, self.identify_counter)
+        else:
+            recorder = Recorder(name, link, output, self.identify_counter)
+
         self.recorders.append(recorder)
+        self.identify_counter += 1
 
         self.refresh_recorder_list()
 

@@ -2,6 +2,7 @@ APP_NAME="LiveRecorder"
 
 pyinstaller --noconfirm --onefile --windowed \
   --name "$APP_NAME" \
+  --add-data "streamlink.exe;." \
   "main.py"
 
 mkdir -p "output"
