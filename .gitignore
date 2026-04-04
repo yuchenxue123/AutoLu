@@ -70,3 +70,5 @@ record/
 config.json
 latest.log
 
+ffmpeg.exe
+

@@ -12,6 +12,7 @@ from threading import Thread
 
 logger = logging.getLogger("Recorder")
 
+
 class Status(Enum):
     PENDING = ("未启动", "pending")
     ANALYZE = ("解析中", "analyze")
@@ -29,10 +30,13 @@ def __get_resource(path):
     result = os.path.join(base, path)
     return result
 
+
 STREAMLINK = __get_resource("streamlink.exe")
+
 
 def _check_streamlink(link: str, callback: typing.Callable[[bool], None]) -> None:
     """我不会 asyncio """
+
     def _worker():
         try:
             subprocess.run(
@@ -53,12 +57,14 @@ def _check_streamlink(link: str, callback: typing.Callable[[bool], None]) -> Non
 
     Thread(target=_worker, daemon=True).start()
 
+
 __default_config = {
-  "mode": "single",
-  "segment_time": 1800
+    "mode": "single",
+    "segment_time": 1800
 }
 
 FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
 
 def __load_json():
     default = {}
@@ -80,7 +86,9 @@ def __load_json():
         logger.error(_)
         return default
 
+
 config = __load_json()
+
 
 class Recorder:
 
@@ -146,7 +154,7 @@ class Recorder:
                 creationflags=FLAGS
             )
 
-            self._read_stream(self._streamlink_process.stdout,  f"[streamlink]")
+            self._read_stream(self._streamlink_process.stdout, f"[streamlink]")
         except Exception as e:
             self.status = Status.FAILED
             self.logger.error(f"启动失败: {e}")
@@ -157,6 +165,7 @@ class Recorder:
             for line in iter(pipe.readline, ""):
                 if line:
                     self.logger.info(f"{prefix} {line.strip()}")
+
         Thread(target=job, daemon=True).start()
 
     def stop(self):

@@ -2,10 +2,13 @@ import logging
 import signal
 import sys
 import tkinter
+from ctypes import windll
 from tkinter import ttk, filedialog, messagebox
+
 from recorder import Recorder, SegmentsRecorder
 
 logger = logging.getLogger("Interface")
+
 
 class Interface:
     def __init__(self, root: tkinter.Tk):
@@ -207,7 +210,7 @@ class Interface:
 
         for item in selection:
             identify = int(self.recorder_tree.item(item, "tags")[0])
-            recorder: Recorder = next((r for r in self.recorders if r.identify == identify), None)
+            recorder: Recorder | None = next((r for r in self.recorders if r.identify == identify), None)
             if recorder:
                 recorder.start()
 
@@ -222,7 +225,7 @@ class Interface:
 
         for item in selection:
             identify = int(self.recorder_tree.item(item, "tags")[0])
-            recorder: Recorder = next((r for r in self.recorders if r.identify == identify), None)
+            recorder: Recorder | None = next((r for r in self.recorders if r.identify == identify), None)
             if recorder:
                 recorder.stop()
 
@@ -257,6 +260,7 @@ class Interface:
         finally:
             self.root.after(500, lambda b: self._poll_list(), None)
 
+
 def __register_close_callback(interface: Interface):
     def cleanup():
         for recorder in interface.recorders:
@@ -267,7 +271,15 @@ def __register_close_callback(interface: Interface):
     signal.signal(signal.SIGINT, lambda s, f: (cleanup(), sys.exit(0)))
     signal.signal(signal.SIGTERM, lambda s, f: (cleanup(), sys.exit(0)))
 
+
 def create_window():
+    try:
+        # noinspection PyUnresolvedReferences
+        windll.user32.SetProcessDPIAware()
+    except Exception as e:
+        logger.error(e)
+        pass
+
     root = tkinter.Tk()
     interface = Interface(root)
     __register_close_callback(interface)
