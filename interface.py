@@ -164,7 +164,7 @@ class Interface:
             messagebox.showinfo("提示", "请选择输出目录")
             return
 
-        from recorder import config
+        from data import config
         if str(config.get("mode")) == "single":
             logger.info(f"{name}-{self.identify_counter} 使用 Single 模式")
             recorder = Recorder(name, link, output, self.identify_counter)

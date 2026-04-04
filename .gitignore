@@ -67,8 +67,6 @@ env/
 
 output/
 record/
-config.json
+data
 latest.log
-
 ffmpeg.exe
-

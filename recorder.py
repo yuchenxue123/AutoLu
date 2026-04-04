@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import subprocess
@@ -58,36 +57,7 @@ def _check_streamlink(link: str, callback: typing.Callable[[bool], None]) -> Non
     Thread(target=_worker, daemon=True).start()
 
 
-__default_config = {
-    "mode": "single",
-    "segment_time": 1800
-}
-
 FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-
-
-def __load_json():
-    default = {}
-    file = "config.json"
-    try:
-        if not os.path.exists(file):
-            with open(file, "w", encoding="utf-8") as f:
-                json.dump(__default_config, f, ensure_ascii=False, indent=4)
-                return __default_config
-        else:
-            with open("config.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-        if data is None:
-            return default
-
-        return data
-    except (FileNotFoundError, json.JSONDecodeError, OSError, UnicodeDecodeError) as _:
-        logger.error(_)
-        return default
-
-
-config = __load_json()
 
 
 class Recorder:
@@ -224,6 +194,7 @@ class SegmentsRecorder(Recorder):
             "-o", "-"
         ]
 
+        from data import config
         segment_time = str(config.get("segment_time"))
 
         ffmpeg_command = [
